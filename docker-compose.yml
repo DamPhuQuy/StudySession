@@ -1,0 +1,54 @@
+services:
+  minio:
+    image: docker.io/minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+
+  createbucket:
+    image: docker.io/minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: /bin/sh
+    command: >
+      -c "
+      sleep 3;
+      mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin};
+      mc mb local/study-session --ignore-existing;
+      mc anonymous set download local/study-session;
+      exit 0;
+      "
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - minio
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - STORAGE_ENDPOINT=http://minio:9000
+      - STORAGE_ACCESS_KEY=${STORAGE_ACCESS_KEY:-minioadmin}
+      - STORAGE_SECRET_KEY=${STORAGE_SECRET_KEY:-minioadmin}
+      - STORAGE_BUCKET=${STORAGE_BUCKET:-study-session}
+      - STORAGE_REGION=${STORAGE_REGION:-us-east-1}
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  minio_data:

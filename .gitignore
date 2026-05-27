@@ -1,0 +1,6 @@
+.antigravitycli
+.env
+/target
+/dist
+.maven_portable
+/node_modules
