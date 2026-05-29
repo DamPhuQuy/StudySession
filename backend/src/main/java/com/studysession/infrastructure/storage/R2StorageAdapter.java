@@ -16,21 +16,23 @@ import java.io.InputStream;
 import java.net.URI;
 
 @Component
-public class S3StorageAdapter implements FileStorageRepository {
+public class R2StorageAdapter implements FileStorageRepository {
 
-    private final S3Client s3Client;
+    private final S3Client r2Client;
     private final String bucket;
+    private final String publicUrl;
 
-    public S3StorageAdapter(
-            @Value("${storage.endpoint}") String endpoint,
-            @Value("${storage.access-key}") String accessKey,
-            @Value("${storage.secret-key}") String secretKey,
-            @Value("${storage.bucket}") String bucket,
-            @Value("${storage.region:auto}") String region) {
+    public R2StorageAdapter(
+            @Value("${r2.endpoint}") String endpoint,
+            @Value("${r2.access-key}") String accessKey,
+            @Value("${r2.secret-key}") String secretKey,
+            @Value("${r2.bucket}") String bucket,
+            @Value("${r2.public-url:}") String publicUrl) {
         this.bucket = bucket;
-        this.s3Client = S3Client.builder()
+        this.publicUrl = publicUrl;
+        this.r2Client = S3Client.builder()
                 .endpointOverride(URI.create(endpoint))
-                .region(Region.of(region))
+                .region(Region.of("auto"))
                 .credentialsProvider(StaticCredentialsProvider.create(
                         AwsBasicCredentials.create(accessKey, secretKey)))
                 .forcePathStyle(true)
@@ -39,19 +41,19 @@ public class S3StorageAdapter implements FileStorageRepository {
 
     @Override
     public String upload(String key, InputStream inputStream, long size, String contentType) {
-        s3Client.putObject(
+        r2Client.putObject(
                 PutObjectRequest.builder().bucket(bucket).key(key).contentType(contentType).build(),
                 RequestBody.fromInputStream(inputStream, size));
-        return key;
+        return publicUrl.isEmpty() ? key : publicUrl + "/" + key;
     }
 
     @Override
     public InputStream download(String key) {
-        return s3Client.getObject(GetObjectRequest.builder().bucket(bucket).key(key).build());
+        return r2Client.getObject(GetObjectRequest.builder().bucket(bucket).key(key).build());
     }
 
     @Override
     public void delete(String key) {
-        s3Client.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(key).build());
+        r2Client.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(key).build());
     }
 }

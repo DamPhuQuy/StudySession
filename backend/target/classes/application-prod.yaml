@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: ${DATABASE_URL}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+r2:
+  endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+  access-key: ${R2_ACCESS_KEY}
+  secret-key: ${R2_SECRET_KEY}
+  bucket: study-session
+  public-url: ${R2_PUBLIC_URL:}

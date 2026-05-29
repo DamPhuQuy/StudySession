@@ -4,3 +4,4 @@
 /dist
 .maven_portable
 /node_modules
+.vscode
